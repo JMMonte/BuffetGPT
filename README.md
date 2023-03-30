@@ -1,5 +1,7 @@
+# Investabot
+A simple and open investment bot built in python.
 
-File structure
+## File structure
 ```
 investment_bot/
 │   investment_bot.py      # Main script containing the InvestmentBot class and related methods
