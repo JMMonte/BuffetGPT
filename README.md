@@ -1,5 +1,6 @@
 
 File structure
+```
 investment_bot/
 │   investment_bot.py      # Main script containing the InvestmentBot class and related methods
 │   ui.py                  # Script for the command-line user interface
@@ -12,3 +13,4 @@ investment_bot/
         │   AAPL.csv
         │   MSFT.csv
         │   ...
+```
