@@ -8,8 +8,7 @@ def plot_stock_data(stock_data, symbol):
     plt.ylabel('Close Price')
     plt.title(f'{symbol} Stock Close Price')
     plt.legend()
-    plt.show()
-
+    return plt  # Return the plot object
 
 def plot_indicator_values(stock_data, indicator_values, symbol, indicator_name):
     plt.figure(figsize=(12, 6))
@@ -19,7 +18,7 @@ def plot_indicator_values(stock_data, indicator_values, symbol, indicator_name):
     plt.ylabel('Close Price')
     plt.title(f'{symbol} Stock Close Price with {indicator_name}')
     plt.legend()
-    plt.show()
+    return plt  # Return the plot object
 
 def plot_strategy_performance(stock_data, buy_signals, sell_signals, symbol):
     plt.figure(figsize=(12, 6))
@@ -30,4 +29,4 @@ def plot_strategy_performance(stock_data, buy_signals, sell_signals, symbol):
     plt.ylabel('Close Price')
     plt.title(f'{symbol} Stock Close Price with Buy and Sell Signals')
     plt.legend()
-    plt.show()
+    return plt  # Return the plot object
