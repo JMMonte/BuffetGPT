@@ -1,114 +1,140 @@
+from datetime import date, timedelta
 import streamlit as st
+import matplotlib.pyplot as plt
 import pandas as pd
-from backend.data_fetching import fetch_sp500_tickers, fetch_dividends, fetch_stock_data
-from backend.data_processing import calculate_rsi, filter_stocks_by_rsi, create_portfolio, backtest_strategy
-from datetime import datetime, timedelta
-from backend.data_processing import get_indicator_values
-from visualizations.plots import plot_stock_data, plot_indicator_values, plot_strategy_performance
 
-def display_stock_data(stock_data, symbol):
-    plt = plot_stock_data(stock_data, symbol)
-    st.pyplot(plt)
+from utils.data_fetcher import fetch_data
+from utils.visualizations import calculate_portfolio_value
+from utils.portfolio_manager import PortfolioManager
 
-def display_indicator_values(stock_data, indicator_values, symbol, indicator_name):
-    plt = plot_indicator_values(stock_data, indicator_values, symbol, indicator_name)
-    st.pyplot(plt)
+from strategies.momentum_investing import MomentumInvesting
+from strategies.mean_reversion import MeanReversion
+from strategies.passive_investing import PassiveInvesting
 
-def display_strategy_performance(stock_data, buy_signals, sell_signals, symbol):
-    plt = plot_strategy_performance(stock_data, buy_signals, sell_signals, symbol)
-    st.pyplot(plt)
+st.set_page_config(layout="wide")
 
-st.title('Investabot')
+today = date.today()
+history_in_days = 365 * 10
+history_date = today - timedelta(days=history_in_days)
 
-# User Input for Data Fetching
-st.subheader('Data Fetching')
-start_date = st.date_input('Select Start Date:', datetime(2015, 1, 1))
-end_date = st.date_input('Select End Date:', datetime.today())
-if st.button('Fetch Data'):
-    tickers = fetch_sp500_tickers()
-    st.write('Fetching dividend data...')
-    # show_progress_bar()
-    st.write(f'Progress: {len(tickers) / 503}')
-    progress_bar = st.progress(len(tickers) / 503)
+# Main functions
+# Validate the ticker input and return a list of tickers
+def validate_ticker_input(ticker_input):
+    ticker_list = [ticker.strip() for ticker in ticker_input.split(",")]
+
+    if len(ticker_list) == 0 or ticker_list == ['']:
+        st.error("Please enter at least one ticker.")
+        return None
+
+    return ticker_list
+
+# Run the bot and return the investment log
+def run_bot(strategy, data, investment_amount, investment_cycle, start_date, end_date):
+    investment_log = []
+    current_date = start_date
+
+    while current_date <= end_date and st.session_state.running:
+        try:
+            strategy.analyze()
+            orders = strategy.execute()
+
+            investment_log.append({
+                'date': current_date,
+                'orders': orders
+            })
+
+            # Display the current status of the bot in the UI
+            status = f"Date: {current_date.strftime('%Y-%m-%d')}, Orders: {orders}"
+            st.write(status)
+
+            current_date += pd.to_timedelta(investment_cycle, unit='m')
+
+        except Exception as e:
+            st.error(f"An error occurred while running the bot: {str(e)}")
+            st.session_state.running = False
+
+    return investment_log
 
 
-    dividend_paying_stocks = fetch_dividends(tickers)
-    st.write('Filtering stocks by RSI...')
-    selected_stocks = filter_stocks_by_rsi(dividend_paying_stocks, 30, start_date, '1d')
-    st.write(f'{len(selected_stocks)} stocks selected for portfolio')
+st.title("BuffetGPT - Automated Investment Bot")
 
-    # Create Portfolio
-    initial_capital = st.number_input('Enter your initial capital:', value=10000, min_value=50, step=50)
-    num_stocks = st.number_input('Number of stocks you wish to split your capital:', value=5, min_value=1, step=1)
-    portfolio_stocks = create_portfolio(selected_stocks, initial_capital, num_stocks)
-    st.write(f'Portfolio setup completed with {num_stocks} stocks and initial capital of ${initial_capital}')
+# UI components
+col1, col2 = st.columns([1,2])
+with col1:
+    investment_amount = st.number_input("Enter the amount you want to invest ($):", min_value=0.0, step=0.1, value=1000.0, help="The amount of money you want to invest in the backtest.")
+    strategies = ["Momentum Investing", "Mean Reversion", "Passive Investing"]
+    selected_strategies = st.multiselect("Select investment strategies:", strategies, default=strategies[0])
 
-    investment_date = st.date_input('Select Investment Date:', datetime.today() - timedelta(days=1))
-    st.write(f'Investment started on {investment_date}')
+    start_date = st.date_input("Choose the start date for the backtest:", history_date)
+    end_date = st.date_input("Choose the end date for the backtest (optional):", today)
 
-    # Initialize Result Variables
-    portfolio_performance = []
-    total_earnings = []
+    ticker_input = st.text_input("Enter the tickers to include in the backtest (comma-separated):", placeholder="AAPL,MSFT,AMZN", help="The tickers of the stocks you want to include in the backtest. Separate each ticker with a comma.")
+    ticker_list = validate_ticker_input(ticker_input)
 
-    # Run Investment Analysis
-    while True:
-        st.write('Analyzing portfolio...')
 
-        # Initialize Progress Variables
-        num_stocks_analyzed = 0
-        total_stocks = len(portfolio_stocks)
-        progress_per_stock = 100.0 / total_stocks
-        progress = 0
+    investment_cycle = st.number_input("Select investment cycle (in minutes):",min_value=1.0, step=0.1,max_value=1500.0, help="The cycle that the bot will run in minutes")
 
-        # Initialize Result Variables
-        current_portfolio_value = 0
-        total_earnings_today = 0
+    if 'running' not in st.session_state:
+        st.session_state.running = False
 
-        # Analyze Each Stock in the Portfolio
-        for symbol in portfolio_stocks:
-            log_text.write(f'Analyzing {symbol}...')
+    run_state = st.empty()
 
-            # Fetch Stock Data and Indicator Values based on User Input
-            stock_data = fetch_stock_data(symbol, start_date, end_date, '1d')
-            indicator_values = get_indicator_values(stock_data, 'Relative Strength Index (RSI)')
+    with st.form(key='investment_form'):
+        col_bt1, col_bt2 = st.columns(2)
+        with col_bt1:
+            run_state = st.form_submit_button(label='Run')
+        with col_bt2:
+            stop_state = st.form_submit_button(label='Stop')
 
-            # Display Visualizations
-            display_stock_data(stock_data, symbol)
-            display_indicator_values(stock_data, indicator_values, symbol, 'Relative Strength Index (RSI)')
+with col2:
+    st.subheader("Bot Status:")
+    
+    if run_state and not st.session_state.running:
+        st.session_state.running = True
 
-            # Backtest Investment Strategy
-            buy_signals, sell_signals = backtest_strategy(portfolio_stocks, initial_capital, start_date, end_date, interval)
+        if ticker_list == ['']:
+            st.error("Please enter at least one ticker.")
+            st.session_state.running = False
+        else:
+            data = fetch_data(ticker_list, start_date, end_date)
 
-            # Display Performance Summary
-            portfolio_performance = backtest_strategy(portfolio_stocks, initial_capital, start_date, end_date, interval)
-            total_earnings = (portfolio_performance / 100) * initial_capital
-            st.write(f'Performance: {portfolio_performance:.2f}%')
-            st.write(f'Earnings: ${total_earnings:.2f} ({(portfolio_performance/100)*initial_capital:.2f}%)')
+            strategies = {
+                "Momentum Investing": MomentumInvesting(data, investment_amount, int(investment_cycle)),
+                "Mean Reversion": MeanReversion(data, investment_amount, int(investment_cycle)),
+                "Passive Investing": PassiveInvesting(data, investment_amount, int(investment_cycle)),
+            }
 
-            # Display Strategy Performance
-            display_strategy_performance(stock_data, buy_signals, sell_signals, symbol)
+            portfolio_manager = PortfolioManager()
 
-            # Update Progress
-            num_stocks_analyzed += 1
-            progress = num_stocks_analyzed * progress_per_stock
-            progress_bar.progress(progress)
-            log_text.write(f'{symbol} analysis complete.')
+            for strategy_name in selected_strategies:
+                strategy = strategies[strategy_name]
+                investment_log = run_bot(strategy, data, investment_amount, int(investment_cycle), start_date, end_date)
+                portfolio_manager.update_portfolio(investment_log[-1]['orders'])
 
-        # Save Portfolio Data and Stock List
-        if st.button('Save Portfolio Data and Stock List'):
-            st.write('Saving portfolio data and stock list...')
-            # You can add any additional processing/logic here
-            st.write('Portfolio data and stock list saved!')
+                # Display the investment log generated by the bot
+                st.write(f"{strategy_name} Investment Log:")
+                st.write(investment_log)
 
-        # Update Portfolio
-        if st.button('Update Portfolio'):
-            st.write('Updating portfolio...')
-            # You can add any additional processing/logic here
-            st.write('Portfolio updated!')
+                # Calculate and plot the portfolio value
+                portfolio_value = calculate_portfolio_value(investment_log, data)
+                dates, values = zip(*portfolio_value)
+                plt.plot(dates, values)
+                plt.xlabel('Date')
+                plt.ylabel('Portfolio Value ($)')
+                plt.title(f'{strategy_name} Investment Performance')
+                st.pyplot(plt)
 
-        # Divest
-        if st.button('Divest'):
-            st.write('Divesting portfolio...')
-            # You can add any additional processing/logic here
-            st.write('Portfolio divested!')
+            st.session_state.running = False
+
+    if stop_state and st.session_state.running:
+        st.session_state.running = False
+        st.write("Bot stopped.")
+
+if st.session_state.running:
+    investment_log = run_bot(MomentumInvesting, data, investment_amount, int(investment_cycle), start_date, end_date)
+
+    # Display the investment log generated by the bot
+    st.write("Momentum Investing Investment Log:")
+    st.write(investment_log)
+    st.session_state.running = False
 
