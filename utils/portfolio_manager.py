@@ -50,3 +50,14 @@ class PortfolioManager:
 
         return updated_portfolio
 
+    def rebalance(self, strategy="equal_weight"):
+        if strategy == "equal_weight":
+            self._rebalance_equal_weight()
+
+    def _rebalance_equal_weight(self):
+        total_value = sum(self.portfolio.values())
+        target_value = total_value / len(self.portfolio)
+
+        for ticker, value in self.portfolio.items():
+            difference = target_value - value
+            self.portfolio[ticker] += difference

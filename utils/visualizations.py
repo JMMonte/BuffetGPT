@@ -9,7 +9,7 @@ def calculate_portfolio_value(investment_log, data):
         for order in entry['orders']:
             ticker = order['ticker']
             shares = order['shares']
-            stock_data = data[ticker].loc[data[ticker].index <= date]
+            stock_data = data[ticker].loc[data[ticker].index <= pd.Timestamp(date)]
             if len(stock_data) > 0:
                 price = stock_data['Close'].iloc[-1]
                 total_value += shares * price

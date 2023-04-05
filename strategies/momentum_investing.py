@@ -2,6 +2,7 @@ import pandas as pd
 import streamlit as st
 from strategies.strategy_base import StrategyBase
 
+
 class MomentumInvesting(StrategyBase):
     def __init__(self, data, investment_amount, invest_cycle):
         self.data = data
@@ -25,7 +26,8 @@ class MomentumInvesting(StrategyBase):
         investment_per_stock = available_funds / top_n
 
         orders = []
-        for i, (ticker, momentum_score) in enumerate(self.rankings.head(top_n).iteritems()):
+        for i, (ticker, momentum_score) in enumerate(self.rankings.head(top_n).items()):
+
             stock_price = self.current_prices[ticker]
             num_shares = int(investment_per_stock / stock_price)
 

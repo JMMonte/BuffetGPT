@@ -1,5 +1,3 @@
-import pandas as pd
-import streamlit as st
 from strategies.strategy_base import StrategyBase
 
 class PassiveInvesting(StrategyBase):
