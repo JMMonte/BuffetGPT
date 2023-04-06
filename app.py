@@ -5,11 +5,27 @@ import ta  # Import the technical analysis library
 import plotly.express as px
 from datetime import datetime
 from datetime import timedelta
+from strategies import moving_average_strategy, momentum_strategy, bollinger_bands_strategy
+import statsmodels.api as sm
+from collections import OrderedDict
 import re  # Import the regular expression library
+
+st.set_page_config(page_title=None,
+                   page_icon=None,
+                   layout="wide",
+                   initial_sidebar_state="auto",
+                   menu_items=None)
+
+INVESTMENT_STRATEGIES = OrderedDict([
+    ("Moving Average Crossover", moving_average_strategy),
+    ("Momentum", momentum_strategy),
+    ("Bollinger Bands", bollinger_bands_strategy),
+])
 
 # Define the stock symbol validator
 def is_valid_stock_symbol(symbol):
-  return re.match(r"^[A-Za-z0-9\.\-\^]+$", symbol) is not None
+    return re.match(r"^[A-Za-z0-9\.\-\^]+$", symbol) is not None
+
 
 # Time variables
 now = datetime.now()
@@ -18,244 +34,370 @@ today = now.strftime("%d %B %Y")
 time_ago = now - timedelta(days=120)
 
 # Just a nice URL
-url = "https://www.investopedia.com/terms/r/rsi.asp"
+url = ["https://www.investopedia.com/terms/r/rsi.asp", "https://www.investopedia.com/terms/b/bollingerbands.asp", "https://www.investopedia.com/terms/m/movingaverage.asp", "https://www.investopedia.com/terms/m/macd.asp","https://github.com/JMMonte"]
 
 # Set the title of the app
-st.title("Technical Analysis Investment Bot")
+st.title("Technical Analysis Backtester")
 warning = st.warning(
-  "👈 Your portfolio data will go here. Setup the bot in the side bar")
+    "👈 Your portfolio data will go here. Setup the bot in the side bar")
 
 # Open the sidebar
 with st.sidebar:
-  with st.expander("About this bot"):
-    st.write(
-      '''This is a simple backtesting sandbox that uses Yfinance history data to preform technical analysis, set a list of buy and sell orders and plot the resutl. It's pretty simple.
+    # Input the total amount of money to be invested
+    total_investment = st.number_input(
+        "Enter the total amount of money to be invested:",
+        min_value=0.0,
+        value=10000.0,
+        step=1.0)
+
+    # Input the stock symbol and date range for backtesting
+    symbol = st.text_input("Enter the Ticker symbol (e.g., AAPL, BTC-USD, VTI):",
+                           "AAPL,NVDA,AMZN,TSLA",help="You can enter multiple stocks, ETFs, or Crypto by separating them with a comma.")
+    try:
+        if not symbol:
+            raise ValueError
+    except ValueError:
+        st.error("Please enter an existing ticker that is listed in Yahoo Finance.")
+
+    # Set the backtesting parameters
+    start_date = st.date_input("Start date for backtesting:",
+                               value=pd.to_datetime(time_ago))
+    end_date = st.date_input("End date for backtesting:",
+                             value=pd.to_datetime(today))
+    # Set the min RSI value
+    rsi_min = st.number_input(
+        "Enter the minimum RSI value:",
+        min_value=0.0,
+        value=30.0,
+        step=0.1,
+        help="The RSI is a measure of the change in price over a period of time. A normal minimum value for a stock is 30 or less. For ETFs and index, use a value of 45 or 35."
+    )
+    # Set the max RSI value
+    rsi_max = st.number_input(
+        "Enter the maximum RSI value:",
+        min_value=0.0,
+        value=70.0,
+        step=0.1,
+        help="The RSI is a measure of the change in price over a period of time. A normal maximum value for a stock is 70 or more. For ETFs and index, use a value of 55 or 60."
+    )
+
+    strategy_name = st.selectbox("Select an investment strategy:",
+                                 list(INVESTMENT_STRATEGIES.keys()))
+    strategy_function = INVESTMENT_STRATEGIES[strategy_name]
+
+    # Strategy specific inputs
+    if strategy_name == "Moving Average Crossover":
+        short_window = st.sidebar.number_input(
+            "Short moving average window:",
+            min_value=1,
+            value=50,
+            step=1,
+            help="The number of days to calculate the short moving average."
+        )
+        long_window = st.sidebar.number_input(
+            "Long moving average window:",
+            min_value=1,
+            value=200,
+            step=1,
+            help="The number of days to calculate the long moving average."
+        )
+        strategy_inputs = (short_window, long_window)
+    elif strategy_name == "Momentum":
+        momentum_window = st.sidebar.number_input(
+            "Momentum window:",
+            min_value=1,
+            value=14,
+            step=1,
+            help="The number of days to calculate the momentum."
+        )
+        strategy_inputs = (momentum_window,)
+    elif strategy_name == "Bollinger Bands":
+        bollinger_window = st.sidebar.number_input(
+            "Bollinger Bands window:",
+            min_value=1,
+            value=20,
+            step=1,
+            help="The number of days to calculate the Bollinger Bands."
+        )
+        bollinger_n_std = st.sidebar.number_input(
+            "Bollinger Bands n standard deviations:",
+            min_value=1.0,
+            value=2.0,
+            step=0.1,
+            help="The number of standard deviations for the Bollinger Bands."
+        )
+        strategy_inputs = (bollinger_window, bollinger_n_std)
+
+    # Fetch historical data using yfinance
+    data = yf.download(symbol, start=start_date, end=end_date, interval="1d")
+
+    # Create a "Start Bot" button
+    start_bot_button = st.button("Start Bot")
+    with st.expander("About this bot"):
+        st.write(
+            '''This is a simple backtesting sandbox that uses Yfinance history data to preform technical analysis, set a list of buy and sell orders and plot the resutl. It's pretty simple.
       For technical analysis, this bot uses RSI, or Relative Strength Index, which is a measure of the change in price over a period of time.
-      More about RSI here: [Investopedia](%s)''' % url)
-  # Input the total amount of money to be invested
-  total_investment = st.number_input(
-    "Enter the total amount of money to be invested:",
-    min_value=0.0,
-    value=10000.0,
-    step=1.0)
-
-  # Input the stock symbol and date range for backtesting
-  symbol = st.text_input("Enter the stock symbol (e.g., AAPL):", "AAPL")
-  try:
-    if not symbol:
-      raise ValueError
-  except ValueError:
-    st.error("Please enter a stock symbol.")
-
-  # Set the backtesting parameters
-  start_date = st.date_input("Start date for backtesting:",
-                             value=pd.to_datetime(time_ago))
-  end_date = st.date_input("End date for backtesting:",
-                           value=pd.to_datetime(today))
-  # Set the min RSI value
-  rsi_min = st.number_input(
-    "Enter the minimum RSI value:",
-    min_value=0.0,
-    value=30.0,
-    step=0.1,
-    help=
-    "The RSI is a measure of the change in price over a period of time. A normal minimum value for a stock is 30 or less. For ETFs and index, use a value of 45 or 35."
-  )
-  # Set the max RSI value
-  rsi_max = st.number_input(
-    "Enter the maximum RSI value:",
-    min_value=0.0,
-    value=70.0,
-    step=0.1,
-    help=
-    "The RSI is a measure of the change in price over a period of time. A normal maximum value for a stock is 70 or more. For ETFs and index, use a value of 55 or 60."
-  )
-
-  # Fetch historical data using yfinance
-  data = yf.download(symbol, start=start_date, end=end_date, interval="1d")
-
-  # Create a "Start Bot" button
-  start_bot_button = st.button("Start Bot")
+      More about RSI here: [Investopedia](%s).
+      This bot was designed and built by João Montenegro, and you can find the source code on [GitHub](%s).
+      ''' % (url[0], url[4]))
 
 # Execute the following code only when the button is pressed
 if start_bot_button:
-  warning = st.empty()
-  # Split the input symbols into a list
-  symbols_list = symbol.split(',')
+    warning = st.empty()
+    # Split the input symbols into a list
+    symbols_list = symbol.split(',')
 
-  # Initialize an empty DataFrame to store historical data
-  data = pd.DataFrame()
+    # Initialize an empty DataFrame to store historical data
+    data = pd.DataFrame()
 
-  # Fetch historical data for each symbol and concatenate them into one DataFrame
-  for symbol in symbols_list:
-    symbol_data = yf.download(symbol,
-                              start=start_date,
-                              end=end_date,
-                              interval="1d")
-    symbol_data['Symbol'] = symbol
-    data = pd.concat([data, symbol_data])
-
-  # Check if data is available
-  if data.empty:
-    st.write(
-      "No data available for the provided stock symbols and date range.")
-  else:
-    # Create an interactive line plot of the closing prices for each symbol using Plotly
-    st.subheader("Closing prices")
-    fig = px.line(data,
-                  x=data.index,
-                  y='Close',
-                  color='Symbol',
-                  title='Closing Prices')
-    st.plotly_chart(fig)
-
-    # Calculate RSI for each symbol
-    data['RSI'] = data.groupby('Symbol')['Close'].transform(
-      lambda x: ta.momentum.RSIIndicator(x).rsi())
-
-    total_earnings = 0
-    buy_sell_signals = []
-    summary_data = []
-
-    buy_sell_counts = {}
-
-    # Calculate earnings and buy/sell signals for each symbol
+    # Fetch historical data for each symbol and concatenate them into one DataFrame
     for symbol in symbols_list:
-      symbol_data = data[data['Symbol'] == symbol].copy()
+        symbol_data = yf.download(symbol,
+                                  start=start_date,
+                                  end=end_date,
+                                  interval="1d")
+        symbol_data['Symbol'] = symbol
+        data = pd.concat([data, symbol_data])
 
-      # Create Buy and Sell signals
-      symbol_data['Buy'] = (symbol_data['RSI'] < rsi_min)
-      symbol_data['Sell'] = (symbol_data['RSI'] > rsi_max)
+    # Check if data is available
+    if data.empty:
+        st.write(
+            "No data available for the provided stock symbols and date range.")
+    else:
 
-      in_position = False
-      buy_price = 0
-      earnings = 0
-      num_shares = 0
+        col1, col2, col3 = st.columns(3, gap="large")
 
-      buy_count = 0
-      sell_count = 0
+        # Create an interactive line plot of the closing prices for each symbol using Plotly
+        st.subheader(
+            "Closing prices of selected stocks, ETFs and/or indexes (USD)")
+        fig = px.line(data,
+                      x=data.index,
+                      y='Close',
+                      color='Symbol',
+                      title='Closing Prices')
+        st.plotly_chart(fig, use_container_width=True)
 
-      # Initialize investment value for each ticker
-      symbol_investment = total_investment / len(symbols_list)
+        # Calculate RSI for each symbol
+        data['RSI'] = data.groupby('Symbol')['Close'].transform(
+            lambda x: ta.momentum.RSIIndicator(x).rsi())
 
-      # on buy and sell signals
-      for index, row in symbol_data.iterrows():
-        if row['Buy'] and not in_position:
-          in_position = True
-          buy_price = row['Close']
-          num_shares = symbol_investment // buy_price  # Calculate the number of shares to buy
-          buy_amount = num_shares * buy_price
-          buy_sell_signals.append({
-            "Symbol": symbol,
-            "Signal": "Buy",
-            "Timestamp": index,
-            "Price": buy_price,
-            "Amount": buy_amount
-          })
-          buy_count += 1
-        elif row['Sell'] and in_position:
-          in_position = False
-          sell_price = row['Close']
-          earnings += num_shares * (
-            sell_price - buy_price
-          )  # Calculate earnings based on the number of shares
-          sell_amount = num_shares * sell_price
-          buy_sell_signals.append({
-            "Symbol": symbol,
-            "Signal": "Sell",
-            "Timestamp": index,
-            "Price": sell_price,
-            "Amount": sell_amount,
-            "Earnings": (sell_amount - buy_amount)
-          })
-          sell_count += 1
+        total_earnings = 0
+        buy_sell_signals = []
+        summary_data = []
 
-      buy_sell_counts[symbol] = {'Buy': buy_count, 'Sell': sell_count}
+        buy_sell_counts = {}
 
-      # Update total earnings with the earnings from the current symbol
-      total_earnings += earnings
+        # Calculate earnings and buy/sell signals for each symbol
+        for symbol in symbols_list:
+            symbol_data = data[data['Symbol'] == symbol].copy()
 
-      # Store the performance data of each ticker in summary_data list
-      summary_data.append({
-        "Symbol": symbol,
-        "Earnings": earnings,
-        "Investment": symbol_investment
-      })
+            # Apply the selected investment strategy
+            try:
+                strategy_function(symbol_data)
+            except Exception as e:
+                st.error(f"Error applying strategy '{strategy_name}' to symbol '{symbol}': {e}")
+                continue
 
-    # Calculate total returns based on the invested amount
-    total_returns = total_investment + total_earnings
 
-    # Create a bar chart for the number of buy and sell signals for each ticker
-    st.subheader("Number of Buy and Sell Signals")
-    buy_sell_counts_df = pd.DataFrame(buy_sell_counts).T.reset_index().rename(
-      columns={'index': 'Symbol'})
-    fig2 = px.bar(buy_sell_counts_df,
-                  x='Symbol',
-                  y=['Buy', 'Sell'],
-                  barmode='group',
-                  title='Number of Buy and Sell Signals')
-    st.plotly_chart(fig2)
+            # Create Buy and Sell signals
+            # symbol_data['Buy'] = (symbol_data['RSI'] < rsi_min)
+            # symbol_data['Sell'] = (symbol_data['RSI'] > rsi_max)
 
-    # Create a pie chart showing the distribution of earnings among the tickers
-    st.subheader("Earnings Distribution")
-    earnings_data = pd.DataFrame(summary_data).set_index('Symbol')
-    fig3 = px.pie(earnings_data,
-                  values='Earnings',
-                  names=earnings_data.index,
-                  title='Earnings Distribution')
-    st.plotly_chart(fig3)
+            in_position = False
+            buy_price = 0
+            earnings = 0
+            num_shares = 0
 
-    # Create a line chart showing the performance of each ticker
-    st.subheader("Ticker Performance")
-    performance_data = pd.DataFrame(summary_data).set_index('Symbol')
-    performance_data['Investment'] = performance_data['Investment'].astype(
-      float)
-    performance_data['Returns'] = performance_data[
-      'Earnings'] / performance_data['Investment'] * 100
-    fig4 = px.line(performance_data,
-                   y='Returns',
-                   title='Performance of each Ticker')
-    st.plotly_chart(fig4)
+            buy_count = 0
+            sell_count = 0
 
-    # Display earnings and total returns in Streamlit metrics
-    st.metric("Total Earnings", f"${total_earnings:.2f}")
-    st.metric("Total Returns", f"${total_returns:.2f}")
+            # Initialize investment value for each ticker
+            symbol_investment = total_investment / len(symbols_list)
 
-    # Display a summary of all tickers' performance
-    st.subheader("Summary of Performance")
-    summary_df = pd.DataFrame(summary_data)
-    summary_df['Investment'] = summary_df['Investment'].astype(float)
-    summary_df[
-      'Returns'] = summary_df['Earnings'] / summary_df['Investment'] * 100
-    st.write(summary_df)
+            # on buy and sell signals
+            for index, row in symbol_data.iterrows():
+                if row['Buy'] and not in_position:
+                    in_position = True
+                    buy_price = row['Close']
+                    # Calculate the number of shares to buy
+                    num_shares = symbol_investment // buy_price
+                    buy_amount = num_shares * buy_price
+                    buy_sell_signals.append({
+                        "Symbol": symbol,
+                        "Signal": "Buy",
+                        "Timestamp": index,
+                        "Price": buy_price,
+                        "Amount": buy_amount
+                    })
+                    buy_count += 1
+                elif row['Sell'] and in_position:
+                    in_position = False
+                    sell_price = row['Close']
+                    earnings += num_shares * (
+                        sell_price - buy_price
+                    )  # Calculate earnings based on the number of shares
+                    sell_amount = num_shares * sell_price
+                    buy_sell_signals.append({
+                        "Symbol": symbol,
+                        "Signal": "Sell",
+                        "Timestamp": index,
+                        "Price": sell_price,
+                        "Amount": sell_amount,
+                        "Earnings": (sell_amount - buy_amount)
+                    })
+                    sell_count += 1
 
-    signals_df = pd.DataFrame(buy_sell_signals)
+            # Store the number of buy and sell signals for each ticker
+            buy_sell_counts[symbol] = {'Buy': buy_count, 'Sell': sell_count}
 
-    # Display a table with the list of buys and sells for each ticker
-    st.subheader("List of Buy and Sell Orders")
-    orders_data = []
-    for symbol in symbols_list:
-      symbol_orders = signals_df[signals_df['Symbol'] == symbol].copy()
-      symbol_orders['Amount'] = symbol_orders['Amount'].astype(float)
-      symbol_orders['Earnings'] = symbol_orders['Earnings'].astype(float)
-      symbol_orders['Cumulative Amount'] = symbol_orders['Amount'].cumsum()
-      symbol_orders['Cumulative Earnings'] = symbol_orders['Earnings'].cumsum()
-      orders_data.append(symbol_orders)
-    orders_df = pd.concat(orders_data)
-    st.write(orders_df)
+            # Update total earnings with the earnings from the current symbol
+            total_earnings += earnings
 
-    # Display the investment amount for each ticker
-    st.subheader("Investment Allocation")
-    investment_data = pd.DataFrame(summary_data).set_index('Symbol')
-    investment_data['Investment'] = investment_data['Investment'].astype(float)
-    fig5 = px.pie(investment_data,
-                  values='Investment',
-                  names=investment_data.index,
-                  title='Investment Allocation')
-    st.plotly_chart(fig5)
+            # Store the performance data of each ticker in summary_data list
+            summary_data.append({
+                "Symbol": symbol,
+                "Earnings": earnings,
+                "Investment": symbol_investment
+            })
 
-    # Display a table with the number of buys and sells for each ticker
-    st.subheader("Buy and Sell Counts")
-    buy_sell_counts_df = pd.DataFrame(buy_sell_counts).T.reset_index().rename(
-      columns={'index': 'Symbol'})
-    st.write(buy_sell_counts_df)
+        # Calculate total returns based on the invested amount
+        total_returns = total_investment + total_earnings
+
+        # Create a bar chart for the number of buy and sell signals for each ticker
+        st.subheader("Number of Buy and Sell Signals")
+        buy_sell_counts_df = pd.DataFrame(buy_sell_counts).T.reset_index().rename(
+            columns={'index': 'Symbol'})
+        fig2 = px.bar(buy_sell_counts_df,
+                      x='Symbol',
+                      y=['Buy', 'Sell'],
+                      barmode='group',
+                      title='Number of Buy and Sell Signals')
+        st.plotly_chart(fig2, use_container_width=True)
+
+        # Create a bar chart showing the performance of each ticker
+        st.subheader("Ticker Performance")
+        performance_data = pd.DataFrame(summary_data).set_index('Symbol')
+        performance_data['Investment'] = performance_data['Investment'].astype(
+            float)
+        performance_data['Returns'] = performance_data[
+            'Earnings'] / performance_data['Investment'] * 100
+        fig4 = px.bar(performance_data,
+                      y='Returns',
+                      title='Performance of each Ticker')
+        st.plotly_chart(fig4, use_container_width=True)
+
+        # Display earnings and total returns in Streamlit metrics
+        with col1:
+            st.metric("Total Investment", "${:,.2f}".format(total_investment))
+        with col2:
+            st.metric("Total Earnings", "${:,.2f}".format(total_earnings))
+        with col3:
+            st.metric("Total Returns",
+                      "${:,.2f}".format(total_returns),
+                      delta=f"{total_earnings / total_investment * 100:.2f} %")
+
+        cola1, cola2 = st.columns(2)
+        with cola1:
+            # Display a summary of all tickers' performance
+            st.subheader("Summary of Performance")
+            summary_df = pd.DataFrame(summary_data)
+            summary_df['Investment'] = summary_df['Investment'].astype(float)
+            summary_df[
+                'Returns'] = summary_df['Earnings'] / summary_df['Investment'] * 100
+            st.dataframe(summary_df, use_container_width=True)
+
+            signals_df = pd.DataFrame(buy_sell_signals)
+
+        with cola2:
+            # Display a table with the number of buys and sells for each ticker
+            st.subheader("Buy and Sell Counts")
+            buy_sell_counts_df = pd.DataFrame(
+                buy_sell_counts).T.reset_index().rename(columns={'index': 'Symbol'})
+            st.dataframe(buy_sell_counts_df, use_container_width=True)
+
+        # Display a table with the list of buys and sells for each ticker
+        st.subheader("List of Buy and Sell Orders")
+        orders_data = []
+        for symbol in symbols_list:
+            symbol_orders = signals_df[signals_df['Symbol'] == symbol].copy()
+            symbol_orders['Amount'] = symbol_orders['Amount'].astype(float)
+            symbol_orders['Earnings'] = symbol_orders['Earnings'].astype(float)
+            symbol_orders['Cumulative Amount'] = symbol_orders['Amount'].cumsum()
+            symbol_orders['Cumulative Earnings'] = symbol_orders['Earnings'].cumsum()
+            orders_data.append(symbol_orders)
+        orders_df = pd.concat(orders_data)
+        st.dataframe(orders_df, use_container_width=True)
+
+        # Initialize the starting treasury
+        treasury = total_investment
+
+        # Create a copy of the buy_sell_signals list
+        buy_sell_list = buy_sell_signals.copy()
+
+        # Insert a new dictionary at the beginning of the list to represent the starting treasury
+        buy_sell_list.insert(
+            0, {'Symbol': 'Treasury', 'Signal': 'Buy', 'Timestamp': start_date, 'Amount': treasury})
+
+        # Sort the list by timestamp
+        buy_sell_list_sorted = sorted(
+            buy_sell_list, key=lambda x: x['Timestamp'])
+
+        # Calculate the change in treasury for each timestamp
+        for i in range(1, len(buy_sell_list_sorted)):
+            signal = buy_sell_list_sorted[i]['Signal']
+            amount = buy_sell_list_sorted[i]['Amount']
+            if signal == 'Buy':
+                treasury -= amount
+            elif signal == 'Sell':
+                treasury += amount
+            buy_sell_list_sorted[i]['Amount'] = treasury
+
+        # Convert the buy_sell_list_sorted to a Pandas DataFrame
+        buy_sell_df = pd.DataFrame(buy_sell_list_sorted)
+
+        # Plot the cumulative treasury using Plotly
+        st.subheader("Cumulative treasury over time")
+        fig_cumulative_treasury = px.scatter(buy_sell_df,
+                                             x=buy_sell_df['Timestamp'],
+                                             y=buy_sell_df['Amount'],
+                                             title="Cumulative treasury over time",
+                                             trendline="ols",
+                                             trendline_scope="overall",
+                                             trendline_color_override="red")
+        st.plotly_chart(fig_cumulative_treasury.update_traces(
+            mode='lines'), use_container_width=True)
+
+        # Add a line graph showing buy and sell orders in time (timeframe)
+        st.subheader("Buy and Sell Orders in Time")
+        orders_data_graph = []
+        for symbol in symbols_list:
+            symbol_orders = signals_df[signals_df['Symbol'] == symbol].copy()
+            symbol_orders['Amount'] = symbol_orders['Amount'].astype(float)
+            orders_data_graph.append(symbol_orders)
+        fig6 = px.line(pd.concat(orders_data_graph), x='Timestamp', y='Amount',
+                       color='Symbol', title='Buy and Sell Orders in Time', markers=True)
+        st.plotly_chart(fig6, use_container_width=True)
+
+        coli1, coli2 = st.columns(2, gap="large")
+        with coli1:
+            # Create a pie chart showing the distribution of earnings among the tickers
+            st.subheader("Earnings Distribution")
+            earnings_data = pd.DataFrame(data=summary_data).set_index('Symbol')
+            fig3 = px.pie(earnings_data,
+                          values='Earnings',
+                          names=earnings_data.index,
+                          title='Earnings Distribution')
+            st.plotly_chart(fig3)
+
+        with coli2:
+            # Display the investment amount for each ticker
+            st.subheader("Investment Allocation")
+            investment_data = pd.DataFrame(
+                data=summary_data).set_index('Symbol')
+            investment_data['Investment'] = investment_data['Investment'].astype(
+                float)
+            fig5 = px.pie(investment_data,
+                          values='Investment',
+                          names=investment_data.index,
+                          title='Investment Allocation')
+            st.plotly_chart(fig5)
