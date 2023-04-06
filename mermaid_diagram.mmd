@@ -1,0 +1,160 @@
+graph TD
+    subgraph app
+    end
+    subgraph generate_mermaid_diagram
+    end
+    subgraph strategy_base
+        StrategyBase:
+
+        StrategyBase:
+_()
+        StrategyBase:
+ --> StrategyBase:
+_
+        StrategyBase:
+_progress[progress]
+        StrategyBase:
+ --> StrategyBase:
+_progress
+        StrategyBase:
+_stock_data[stock_data]
+        StrategyBase:
+ --> StrategyBase:
+_stock_data
+        StrategyBase:
+_investment_cycle[investment_cycle]
+        StrategyBase:
+ --> StrategyBase:
+_investment_cycle
+        StrategyBase:
+_stop_loss[stop_loss]
+        StrategyBase:
+ --> StrategyBase:
+_stop_loss
+        StrategyBase:
+_investment_amount[investment_amount]
+        StrategyBase:
+ --> StrategyBase:
+_investment_amount
+        StrategyBase:
+_capital_allocation[capital_allocation]
+        StrategyBase:
+ --> StrategyBase:
+_capital_allocation
+    end
+    subgraph passive_investing
+        PassiveInvesting
+        PassiveInvesting_()
+        PassiveInvesting --> PassiveInvesting_
+        PassiveInvesting_etf_ticker[etf_ticker]
+        PassiveInvesting --> PassiveInvesting_etf_ticker
+    end
+    subgraph momentum_investing
+        MomentumInvesting
+        MomentumInvesting_()
+        MomentumInvesting --> MomentumInvesting_
+        MomentumInvesting_worst_performers[worst_performers]
+        MomentumInvesting --> MomentumInvesting_worst_performers
+        MomentumInvesting_last_prices[last_prices]
+        MomentumInvesting --> MomentumInvesting_last_prices
+        MomentumInvesting_progress[progress]
+        MomentumInvesting --> MomentumInvesting_progress
+        MomentumInvesting_returns[returns]
+        MomentumInvesting --> MomentumInvesting_returns
+        MomentumInvesting_stock_data[stock_data]
+        MomentumInvesting --> MomentumInvesting_stock_data
+        MomentumInvesting_investment_cycle[investment_cycle]
+        MomentumInvesting --> MomentumInvesting_investment_cycle
+        MomentumInvesting_positions[positions]
+        MomentumInvesting --> MomentumInvesting_positions
+        MomentumInvesting_actions_log[actions_log]
+        MomentumInvesting --> MomentumInvesting_actions_log
+        MomentumInvesting_investment_amount[investment_amount]
+        MomentumInvesting --> MomentumInvesting_investment_amount
+        MomentumInvesting_tickers[tickers]
+        MomentumInvesting --> MomentumInvesting_tickers
+        MomentumInvesting_best_performers[best_performers]
+        MomentumInvesting --> MomentumInvesting_best_performers
+    end
+    subgraph mean_reversion
+        MeanReversion
+        MeanReversion_()
+        MeanReversion --> MeanReversion_
+        MeanReversion_window[window]
+        MeanReversion --> MeanReversion_window
+    end
+    subgraph portfolio_manager
+        Portfolio:
+
+        Portfolio:
+_()
+        Portfolio:
+ --> Portfolio:
+_
+        Portfolio:
+_risk_manager[risk_manager]
+        Portfolio:
+ --> Portfolio:
+_risk_manager
+        Portfolio:
+_stock_data[stock_data]
+        Portfolio:
+ --> Portfolio:
+_stock_data
+        Portfolio:
+_log[log]
+        Portfolio:
+ --> Portfolio:
+_log
+        Portfolio:
+_positions[positions]
+        Portfolio:
+ --> Portfolio:
+_positions
+        Portfolio:
+_investment_amount[investment_amount]
+        Portfolio:
+ --> Portfolio:
+_investment_amount
+        Portfolio:
+_capital_allocation[capital_allocation]
+        Portfolio:
+ --> Portfolio:
+_capital_allocation
+        Portfolio:
+_tickers[tickers]
+        Portfolio:
+ --> Portfolio:
+_tickers
+        Portfolio:
+_strategies[strategies]
+        Portfolio:
+ --> Portfolio:
+_strategies
+    end
+    subgraph visualizations
+    end
+    subgraph data_fetcher
+    end
+    subgraph risk_manager
+        RiskManager:
+
+        RiskManager:
+_()
+        RiskManager:
+ --> RiskManager:
+_
+        RiskManager:
+_total_investment[total_investment]
+        RiskManager:
+ --> RiskManager:
+_total_investment
+        RiskManager:
+_risk_threshold[risk_threshold]
+        RiskManager:
+ --> RiskManager:
+_risk_threshold
+    end
+    MeanReversion --> RSIIndicator
+    Portfolio:
+ --> DataFrame
