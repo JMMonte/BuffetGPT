@@ -10,10 +10,10 @@ import statsmodels.api as sm
 from collections import OrderedDict
 import re  # Import the regular expression library
 
-st.set_page_config(page_title=None,
+st.set_page_config(page_title="Technical Analysis Backtester",
                    page_icon=None,
                    layout="wide",
-                   initial_sidebar_state="auto",
+                   initial_sidebar_state="expanded",
                    menu_items=None)
 
 INVESTMENT_STRATEGIES = OrderedDict([
@@ -21,6 +21,9 @@ INVESTMENT_STRATEGIES = OrderedDict([
     ("Momentum", momentum_strategy),
     ("Bollinger Bands", bollinger_bands_strategy),
 ])
+
+# Set the default answer status to False
+answer_status = False
 
 # Define the stock symbol validator
 def is_valid_stock_symbol(symbol):
@@ -34,12 +37,11 @@ today = now.strftime("%d %B %Y")
 time_ago = now - timedelta(days=120)
 
 # Just a nice URL
-url = ["https://www.investopedia.com/terms/r/rsi.asp", "https://www.investopedia.com/terms/b/bollingerbands.asp", "https://www.investopedia.com/terms/m/movingaverage.asp", "https://www.investopedia.com/terms/m/macd.asp","https://github.com/JMMonte"]
+url = ["https://www.investopedia.com/terms/r/rsi.asp", "https://www.investopedia.com/terms/b/bollingerbands.asp",
+       "https://www.investopedia.com/terms/m/movingaverage.asp", "https://www.investopedia.com/terms/m/macd.asp", "https://github.com/JMMonte","https://monte-negro.space"]
 
 # Set the title of the app
 st.title("Technical Analysis Backtester")
-warning = st.warning(
-    "👈 Your portfolio data will go here. Setup the bot in the side bar")
 
 # Open the sidebar
 with st.sidebar:
@@ -52,7 +54,7 @@ with st.sidebar:
 
     # Input the stock symbol and date range for backtesting
     symbol = st.text_input("Enter the Ticker symbol (e.g., AAPL, BTC-USD, VTI):",
-                           "AAPL,NVDA,AMZN,TSLA",help="You can enter multiple stocks, ETFs, or Crypto by separating them with a comma.")
+                           "AAPL,NVDA,AMZN,TSLA", help="You can enter multiple stocks, ETFs, or Crypto by separating them with a comma.")
     try:
         if not symbol:
             raise ValueError
@@ -133,13 +135,44 @@ with st.sidebar:
 
     # Create a "Start Bot" button
     start_bot_button = st.button("Start Bot")
-    with st.expander("About this bot"):
-        st.write(
-            '''This is a simple backtesting sandbox that uses Yfinance history data to preform technical analysis, set a list of buy and sell orders and plot the resutl. It's pretty simple.
+
+    # Show the about section on the sidebar
+    if answer_status:
+        with st.expander("About this bot"):
+            st.write(
+                '''This is a simple backtesting sandbox that uses Yfinance history data to preform technical analysis, set a list of buy and sell orders and plot the resutl. It's pretty simple.
+        For technical analysis, this bot uses RSI, or Relative Strength Index, which is a measure of the change in price over a period of time.
+        More about RSI here: [Investopedia](%s).
+        This bot was designed and built by [João Montenegro](%s), and you can find the source code on [GitHub](%s).
+        ''' % (url[0],url[5], url[4]))
+
+# Main backtesting section
+if not start_bot_button:
+
+    # Show a warning message if the bot is not running
+    warning = st.warning(
+        "👈 Your portfolio data will go here. Setup the bot in the side bar")
+    
+    # Show the about section on the main page
+    st.write(
+        '''This is a simple backtesting sandbox that uses Yfinance history data to preform technical analysis, set a list of buy and sell orders and plot the resutl. It's pretty simple.
       For technical analysis, this bot uses RSI, or Relative Strength Index, which is a measure of the change in price over a period of time.
       More about RSI here: [Investopedia](%s).
-      This bot was designed and built by João Montenegro, and you can find the source code on [GitHub](%s).
-      ''' % (url[0], url[4]))
+      This bot was designed and built by [João Montenegro](%s), and you can find the source code on [GitHub](%s).
+      ''' % (url[0],url[5], url[4]))
+    cole1, cole2, cole3 = st.columns(3)
+
+    # Explainers for the strategies
+    with cole1:
+        with st.expander("About Moving Average Crossover"):
+            st.write("Moving Average Crossover is a strategy that uses two moving averages to determine when to buy and sell a stock. The strategy is based on the idea that a stock price will trend in a certain direction after it breaks above or below its moving average. The strategy is based on the idea that a stock price will trend in a certain direction after it breaks above or below its moving average. More about Moving Average Crossover here: [Investopedia](%s)"% url[2])
+    with cole2:
+        with st.expander("About Momentum Investing"):
+            st.write("Momentum investing is a strategy that aims to capitalize on the continuance of an existing market trend. It is a trading strategy in which investors buy securities that are already rising and look to sell them when they look to have peaked. Momentum, in markets, refers to the capacity for a price trend to sustain itself going forward. More about Moving Average Crossover here: [Investopedia](%s)"% url[2])
+    with cole3:
+        with st.expander("About Bollinger Bands"):
+            st.write("Bollinger Bands are a technical trading tool created by John Bollinger in the early 1980s. They are volatility bands placed above and below a moving average and are used to measure price volatility. Bollinger Bands can be used to identify high and low points in the market, as well as to identify overbought and oversold conditions. More about Moving Average Crossover here: [Investopedia](%s)"% url[1])
+
 
 # Execute the following code only when the button is pressed
 if start_bot_button:
@@ -164,7 +197,7 @@ if start_bot_button:
         st.write(
             "No data available for the provided stock symbols and date range.")
     else:
-
+        answer_status = True
         col1, col2, col3 = st.columns(3, gap="large")
 
         # Create an interactive line plot of the closing prices for each symbol using Plotly
@@ -195,9 +228,9 @@ if start_bot_button:
             try:
                 strategy_function(symbol_data)
             except Exception as e:
-                st.error(f"Error applying strategy '{strategy_name}' to symbol '{symbol}': {e}")
+                st.error(
+                    f"Error applying strategy '{strategy_name}' to symbol '{symbol}': {e}")
                 continue
-
 
             # Create Buy and Sell signals
             # symbol_data['Buy'] = (symbol_data['RSI'] < rsi_min)
