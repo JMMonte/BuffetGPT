@@ -420,7 +420,7 @@ if start_bot_button:
                           values='Earnings',
                           names=earnings_data.index,
                           title='Earnings Distribution')
-            st.plotly_chart(fig3)
+            st.plotly_chart(fig3,use_container_width=True)
 
         with coli2:
             # Display the investment amount for each ticker
@@ -433,4 +433,4 @@ if start_bot_button:
                           values='Investment',
                           names=investment_data.index,
                           title='Investment Allocation')
-            st.plotly_chart(fig5)
+            st.plotly_chart(fig5,use_container_width=True)
