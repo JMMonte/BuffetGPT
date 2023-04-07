@@ -22,6 +22,11 @@ INVESTMENT_STRATEGIES = OrderedDict([
     ("Bollinger Bands", bollinger_bands_strategy),
 ])
 
+@st.cache
+def load_css(file_name = "style.css"):
+   with open(file_name) as f:
+      st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
+
 # Set the default answer status to False
 answer_status = False
 
