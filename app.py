@@ -170,12 +170,14 @@ if not start_bot_button:
 
     # Show the about section on the main page
     st.write(
-        '''This is a simple backtesting sandbox that uses Yfinance history data to preform technical analysis, set a list of buy and sell orders and plot the resutl. It's pretty simple.
+        '''This is a simple backtesting sandbox that uses Yfinance history data to preform technical analysis, set a list of buy and sell orders and plot the resutl. It's pretty simple.<br/>
       For technical analysis, this bot uses RSI, or Relative Strength Index, which is a measure of the change in price over a period of time.
-      More about RSI here: [Investopedia](%s).
+      More about RSI here: [Investopedia](%s).<br/>
       This bot was designed and built by [João Montenegro](%s), and you can find the source code on [GitHub](%s).
-      ''' % (url[0], url[5], url[4]))
-    cole1, cole2, cole3 = st.columns(3)
+      ''' % (url[0], url[5], url[4]), unsafe_allow_html=True)
+    st.subheader("More about the available investment strategies:")
+    cole1, cole2 = st.columns(2)
+    container = st.container()
 
     st.subheader("Some ticker lists to get you started:")
     st.write('''
@@ -272,14 +274,17 @@ if not start_bot_button:
     # Explainers for the strategies
     with cole1:
         with st.expander("About Moving Average Crossover"):
+            st.markdown("$Simple Moving Average = (A1 + A2 + …… + An) / n$<br/><br/>where:<br/><br/>$A_i$ is the data point in the i-th period.", unsafe_allow_html=True)
             st.write(
                 "Moving Average Crossover is a strategy that uses two moving averages to determine when to buy and sell a stock. The strategy is based on the idea that a stock price will trend in a certain direction after it breaks above or below its moving average. The strategy is based on the idea that a stock price will trend in a certain direction after it breaks above or below its moving average. More about Moving Average Crossover here: [Investopedia](%s)" % url[2])
     with cole2:
         with st.expander("About Momentum Investing"):
+            st.markdown("$Momentum = V − V_x$<br/><br/>where:<br/><br/>$V$ is the latest price<br/><br/>$V_x$ is the closing price $x$ number of days ago.", unsafe_allow_html=True)
             st.write(
                 "Momentum investing is a strategy that aims to capitalize on the continuance of an existing market trend. It is a trading strategy in which investors buy securities that are already rising and look to sell them when they look to have peaked. Momentum, in markets, refers to the capacity for a price trend to sustain itself going forward. More about Moving Average Crossover here: [Investopedia](%s)" % url[2])
-    with cole3:
+    with container:
         with st.expander("About Bollinger Bands"):
+            st.markdown("$BOLU = MA(TP,n)+ m * σ[TP,n]$<br/>$BOLD = MA(TP,n) − m * σ[TP,n]$<br/><br/>where:<br/><br/>$BOLU$ = Upper Bollinger Band<br/><br/>$BOLD$ = Lower Bollinger Band<br/><br/>$MA$ = Moving average<br/><br/>$TP (typical price) = (High + Low + Close) ÷ 3$<br/><br/>$n$ = Number of days in smoothing period (typically 20)<br/><br/>$m$ = Number of standard deviations (typically 2)<br/><br/>$σ[TP,n]$ = Standard Deviation over last $n$ periods of $TP$ (Typical Price", unsafe_allow_html=True)
             st.write(
                 "Bollinger Bands are a technical trading tool created by John Bollinger in the early 1980s. They are volatility bands placed above and below a moving average and are used to measure price volatility. Bollinger Bands can be used to identify high and low points in the market, as well as to identify overbought and oversold conditions. More about Moving Average Crossover here: [Investopedia](%s)" % url[1])
 
