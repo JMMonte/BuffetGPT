@@ -16,17 +16,23 @@ st.set_page_config(page_title="Technical Analysis Backtester",
                    initial_sidebar_state="expanded",
                    menu_items=None)
 
+st.markdown(
+    """
+<style>
+    button[kind="secondary"] {
+        margin-bottom: 4rem!important;
+    }
+</style>
+""",
+    unsafe_allow_html=True,
+)
+
+
 INVESTMENT_STRATEGIES = OrderedDict([
     ("Moving Average Crossover", moving_average_strategy),
     ("Momentum", momentum_strategy),
     ("Bollinger Bands", bollinger_bands_strategy),
 ])
-
-
-@st.cache
-def load_css(file_name="style.css"):
-    with open(file_name) as f:
-        st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
 
 
 # Set the default answer status to False
