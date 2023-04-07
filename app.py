@@ -22,15 +22,19 @@ INVESTMENT_STRATEGIES = OrderedDict([
     ("Bollinger Bands", bollinger_bands_strategy),
 ])
 
+
 @st.cache
-def load_css(file_name = "style.css"):
-   with open(file_name) as f:
-      st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
+def load_css(file_name="style.css"):
+    with open(file_name) as f:
+        st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
+
 
 # Set the default answer status to False
 answer_status = False
 
 # Define the stock symbol validator
+
+
 def is_valid_stock_symbol(symbol):
     return re.match(r"^[A-Za-z0-9\.\-\^]+$", symbol) is not None
 
@@ -43,7 +47,7 @@ time_ago = now - timedelta(days=120)
 
 # Just a nice URL
 url = ["https://www.investopedia.com/terms/r/rsi.asp", "https://www.investopedia.com/terms/b/bollingerbands.asp",
-       "https://www.investopedia.com/terms/m/movingaverage.asp", "https://www.investopedia.com/terms/m/macd.asp", "https://github.com/JMMonte","https://monte-negro.space"]
+       "https://www.investopedia.com/terms/m/movingaverage.asp", "https://www.investopedia.com/terms/m/macd.asp", "https://github.com/JMMonte", "https://monte-negro.space"]
 
 # Set the title of the app
 st.title("Technical Analysis Backtester")
@@ -138,18 +142,18 @@ with st.sidebar:
     # Fetch historical data using yfinance
     data = yf.download(symbol, start=start_date, end=end_date, interval="1d")
 
-    # Create a "Start Bot" button
-    start_bot_button = st.button("Start Bot")
+    # Create a "Backtest" button
+    start_bot_button = st.button("Backtest")
 
     # Show the about section on the sidebar
     if answer_status:
-        with st.expander("About this bot"):
+        with st.expander("About this sandbox"):
             st.write(
                 '''This is a simple backtesting sandbox that uses Yfinance history data to preform technical analysis, set a list of buy and sell orders and plot the resutl. It's pretty simple.
         For technical analysis, this bot uses RSI, or Relative Strength Index, which is a measure of the change in price over a period of time.
         More about RSI here: [Investopedia](%s).
         This bot was designed and built by [João Montenegro](%s), and you can find the source code on [GitHub](%s).
-        ''' % (url[0],url[5], url[4]))
+        ''' % (url[0], url[5], url[4]))
 
 # Main backtesting section
 if not start_bot_button:
@@ -157,26 +161,121 @@ if not start_bot_button:
     # Show a warning message if the bot is not running
     warning = st.warning(
         "👈 Your portfolio data will go here. Setup the bot in the side bar")
-    
+
     # Show the about section on the main page
     st.write(
         '''This is a simple backtesting sandbox that uses Yfinance history data to preform technical analysis, set a list of buy and sell orders and plot the resutl. It's pretty simple.
       For technical analysis, this bot uses RSI, or Relative Strength Index, which is a measure of the change in price over a period of time.
       More about RSI here: [Investopedia](%s).
       This bot was designed and built by [João Montenegro](%s), and you can find the source code on [GitHub](%s).
-      ''' % (url[0],url[5], url[4]))
+      ''' % (url[0], url[5], url[4]))
     cole1, cole2, cole3 = st.columns(3)
+
+    st.subheader("Some ticker lists to get you started:")
+    st.write('''
+    Tech Stocks: 
+    ```
+    AAPL, NVDA, AMZN, TSLA
+    ```
+
+    '''
+
+             )
+    st.write('''
+    ETFs: 
+    ```
+    SPY, QQQ, IWM, VOO
+    ```
+
+    '''
+
+             )
+    st.write('''
+    Crypto: 
+    ```
+    BTC-USD, ETH-USD, DOGE-USD
+    ```
+
+    '''
+
+             )
+    st.write('''
+    Forex: 
+    ```
+    EURUSD=X, GBPUSD=X, USDJPY=X
+    ```
+
+    '''
+
+             )
+    st.write('''
+    Commodities: 
+    ```
+    GC=F, CL=F, SI=F
+    ```
+
+    '''
+
+             )
+    st.write('''
+    Indices: 
+    ```
+    ^GSPC, ^IXIC, ^DJI, ^RUT
+    ```
+
+    '''
+
+             )
+    st.write('''
+    Bonds: 
+    ```
+    ^TNX, ^IRX, ^TYX, ^FVX
+    ```
+
+    '''
+
+             )
+    st.write('''
+    Currencies: 
+    ```
+    ^TNX, ^IRX, ^TYX, ^FVX
+    ```
+
+    '''
+
+             )
+    st.write('''
+    Bruteforce: 
+    ```
+    AAPL, NVDA, AMZN, TSLA, SPY, QQQ, IWM, VOO, BTC-USD, ETH-USD, DOGE-USD, EURUSD=X, GBPUSD=X, USDJPY=X, GC=F, CL=F, SI=F, ^GSPC, ^IXIC, ^DJI, ^RUT, ^TNX, ^IRX, ^TYX, ^FVX
+    ```
+
+    '''
+
+             )
+    st.write('''
+    Large ETF list: 
+    ```
+    QQQ, IVV, IWM, SPY, IJR, XLE, AGG, XLV, BND, IEMG, IEFA, EFA, XLK, GLD, VEA, VWO, VNQ, XLU, XLY, TLT, XLI, XLP, IEF, IGSB, GDX, IAU, XLF, GOVT, LQD, SHY, EEM, ACWI, VCSH, EMB, VCIT, JPST, BIL, JEPI, TQQQ, SQQQ, SH, TZA, SPXS, SOXS, SPXU, SDOW, VOO, PSQ, QID, BITO, XLB
+    ```
+
+    '''
+
+             )
 
     # Explainers for the strategies
     with cole1:
         with st.expander("About Moving Average Crossover"):
-            st.write("Moving Average Crossover is a strategy that uses two moving averages to determine when to buy and sell a stock. The strategy is based on the idea that a stock price will trend in a certain direction after it breaks above or below its moving average. The strategy is based on the idea that a stock price will trend in a certain direction after it breaks above or below its moving average. More about Moving Average Crossover here: [Investopedia](%s)"% url[2])
+            st.write(
+                "Moving Average Crossover is a strategy that uses two moving averages to determine when to buy and sell a stock. The strategy is based on the idea that a stock price will trend in a certain direction after it breaks above or below its moving average. The strategy is based on the idea that a stock price will trend in a certain direction after it breaks above or below its moving average. More about Moving Average Crossover here: [Investopedia](%s)" % url[2])
     with cole2:
         with st.expander("About Momentum Investing"):
-            st.write("Momentum investing is a strategy that aims to capitalize on the continuance of an existing market trend. It is a trading strategy in which investors buy securities that are already rising and look to sell them when they look to have peaked. Momentum, in markets, refers to the capacity for a price trend to sustain itself going forward. More about Moving Average Crossover here: [Investopedia](%s)"% url[2])
+            st.write(
+                "Momentum investing is a strategy that aims to capitalize on the continuance of an existing market trend. It is a trading strategy in which investors buy securities that are already rising and look to sell them when they look to have peaked. Momentum, in markets, refers to the capacity for a price trend to sustain itself going forward. More about Moving Average Crossover here: [Investopedia](%s)" % url[2])
     with cole3:
         with st.expander("About Bollinger Bands"):
-            st.write("Bollinger Bands are a technical trading tool created by John Bollinger in the early 1980s. They are volatility bands placed above and below a moving average and are used to measure price volatility. Bollinger Bands can be used to identify high and low points in the market, as well as to identify overbought and oversold conditions. More about Moving Average Crossover here: [Investopedia](%s)"% url[1])
+            st.write(
+                "Bollinger Bands are a technical trading tool created by John Bollinger in the early 1980s. They are volatility bands placed above and below a moving average and are used to measure price volatility. Bollinger Bands can be used to identify high and low points in the market, as well as to identify overbought and oversold conditions. More about Moving Average Crossover here: [Investopedia](%s)" % url[1])
 
 
 # Execute the following code only when the button is pressed
@@ -425,7 +524,7 @@ if start_bot_button:
                           values='Earnings',
                           names=earnings_data.index,
                           title='Earnings Distribution')
-            st.plotly_chart(fig3,use_container_width=True)
+            st.plotly_chart(fig3, use_container_width=True)
 
         with coli2:
             # Display the investment amount for each ticker
@@ -438,4 +537,4 @@ if start_bot_button:
                           values='Investment',
                           names=investment_data.index,
                           title='Investment Allocation')
-            st.plotly_chart(fig5,use_container_width=True)
+            st.plotly_chart(fig5, use_container_width=True)
