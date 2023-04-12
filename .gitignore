@@ -1,10 +1,9 @@
 # .gitignore
-
 __pycache__/
 *.pyc
 *.pyo
 *.egg-info/
-.vscode
+.vscode/
 
 # Virtual Environment
-investabot_venv
+investabot_venv/
