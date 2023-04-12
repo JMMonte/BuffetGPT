@@ -11,7 +11,7 @@ from collections import OrderedDict
 import re  # Import the regular expression library
 
 st.set_page_config(page_title="Technical Analysis Backtester",
-                   page_icon=None,
+                   page_icon=📈,
                    layout="wide",
                    initial_sidebar_state="expanded",
                    menu_items=None)
